@@ -193,10 +193,9 @@ const schema: QuerySchemaDefinition<User> = {
 const selectableFields = ['id', 'firstName', 'lastName', 'email', 'createdAt', 'updatedAt'];
 const populate = [
   'profile',
-  'profile.avatarUrl',
   'profile.socialLinks',
   'profile.socialLinks.platform',
-  'profile.socialLinks.url',
+  // 'profile.socialLinks.url',
 
   'posts',
   'posts.author.profile',
@@ -219,16 +218,20 @@ const populate = [
   'posts.attachments.fileName',
   'posts.attachments.fileSize',
 
-  'role',
-  'role.name',
-  'role.permissions'
+  'role.permissions',
+  'role.permissions.name',
+  'role.permissions.description'
 ];
 
 const compiler = StructuredQueryCompiler.forSchema(schema);
 
 const query = compiler.compile({
   populate,
-  selectableFields
+  selectableFields,
+  includeKey: 'with',
+  selectKey: 'columns'
 });
+
+console.dir(query, { depth: null });
 
 // TODO - complete

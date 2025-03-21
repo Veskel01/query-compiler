@@ -18,6 +18,7 @@ type HasObjectProperties<T> = ObjectKeys<T> extends never ? false : true;
 
 export type QuerySchemaDefinition<T, TDepth extends number = 5> = {
   selectableFields?: Array<PrimitiveKeys<T>>;
+  sortableFields?: Array<PrimitiveKeys<T>>;
 } & (HasObjectProperties<T> extends true
   ? TDepth extends 0
     ? {} // Stop recursion when depth is 0

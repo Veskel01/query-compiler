@@ -34,11 +34,7 @@
     "noEmit": true,
     "module": "ESNext",
     "moduleDetection": "force",
-    "moduleResolution": "Bundler",
-
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "moduleResolution": "Bundler"
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

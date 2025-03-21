@@ -1,5 +1,5 @@
-import { PATH_SEPARATOR } from '@/constants';
-import type { SchemaPaths, Tree, TreeNode } from '@/interfaces';
+import { PATH_SEPARATOR } from '../constants';
+import type { SchemaPaths, Tree, TreeNode } from '../interfaces';
 
 export interface ProcessTreeInput {
   populatePaths: string[];

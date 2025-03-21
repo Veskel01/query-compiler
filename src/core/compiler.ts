@@ -1,21 +1,16 @@
-import { DEFAULT_INCLUDE_KEY, DEFAULT_SELECT_KEY, PATH_SEPARATOR } from '@/constants';
+import { DEFAULT_INCLUDE_KEY, DEFAULT_SELECT_KEY, DEFAULT_SORT_KEY } from '../constants';
 import type {
+  CompileOptions,
+  EmptyRootFieldsBehavior,
   QuerySchemaDefinition,
   SchemaPaths,
   StructuredQuery,
   Tree,
   TreeNode
-} from '@/interfaces';
-import { generateSchemaPaths } from '@/utils/generate-schema-paths';
-
+} from '../interfaces';
+import { generateSchemaPaths } from '../utils/generate-schema-paths';
+import { isEmptyObject } from '../utils/predicates';
 import { TreeProcessor } from './tree-processor';
-
-export interface CompileInput {
-  includeKey?: string;
-  populate: string[];
-  selectableFields: string[];
-  selectKey?: string;
-}
 
 /**
  * Compiles structured queries based on a schema definition
@@ -40,10 +35,16 @@ export class StructuredQueryCompiler<T> {
     populate,
     selectableFields,
     includeKey = DEFAULT_INCLUDE_KEY,
-    selectKey = DEFAULT_SELECT_KEY
-  }: CompileInput): StructuredQuery {
+    selectKey = DEFAULT_SELECT_KEY,
+    sortKey = DEFAULT_SORT_KEY,
+    emptyRootFieldsBehavior = 'returnAll'
+  }: CompileOptions): StructuredQuery {
     // Build root fields selection
-    const rootFields = this.compileRootFields(selectableFields, selectKey);
+    const rootFields = this.compileRootFields({
+      selectKey,
+      selectableFields,
+      emptyRootFieldsBehavior
+    });
 
     // Filter and validate populate paths
     const validPopulatePaths = this.filterValidPaths(populate);
@@ -66,10 +67,24 @@ export class StructuredQueryCompiler<T> {
   /**
    * Compiles the root fields selection
    */
-  private compileRootFields(selectableFields: string[], selectKey: string): StructuredQuery {
+  private compileRootFields({
+    selectableFields,
+    selectKey,
+    emptyRootFieldsBehavior
+  }: {
+    emptyRootFieldsBehavior: EmptyRootFieldsBehavior;
+    selectableFields: string[];
+    selectKey: string;
+  }): StructuredQuery {
+    if (!selectableFields.length && emptyRootFieldsBehavior === 'leaveEmpty') {
+      return {
+        [selectKey]: {}
+      };
+    }
+
     const fields: Record<string, boolean> = {};
 
-    for (const field of selectableFields) {
+    for (const field of selectableFields.length ? selectableFields : this.schemaPaths.rootFields) {
       const trimmedField = field.trim();
 
       if (this.schemaPaths.rootFields.includes(trimmedField)) {
@@ -133,7 +148,7 @@ export class StructuredQueryCompiler<T> {
       rootRelations[key] = this.convertNodeToQuery(node, selectKey, includeKey);
     }
 
-    if (Object.keys(rootRelations).length > 0) {
+    if (!isEmptyObject(rootRelations)) {
       query[includeKey] = rootRelations;
     }
 
@@ -150,8 +165,12 @@ export class StructuredQueryCompiler<T> {
   ): StructuredQuery {
     const nodeResult: StructuredQuery = {};
 
-    // Add fields selection
-    nodeResult[selectKey] = this.convertNodeFields(node);
+    const convertedNodeFields = this.convertNodeFields(node);
+
+    if (!isEmptyObject(convertedNodeFields)) {
+      // Add fields selection
+      nodeResult[selectKey] = convertedNodeFields;
+    }
 
     // Add relations if present
     if (node.relations.size > 0) {
@@ -197,29 +216,26 @@ export class StructuredQueryCompiler<T> {
    * Checks if a path is valid according to the schema
    */
   private isValidPath(path: string): boolean {
-    // Direct match in relation fields
-    if (this.schemaPaths.relationFields.includes(path)) {
+    if (
+      this.schemaPaths.relationFields.includes(path) ||
+      this.schemaPaths.relationKeys.includes(path)
+    ) {
       return true;
     }
 
-    // Check path prefixes against relation keys
-    return this.isValidPathPrefix(path);
-  }
-
-  /**
-   * Checks if any prefix of the path is a valid relation key
-   */
-  private isValidPathPrefix(path: string): boolean {
-    const parts = path.split(PATH_SEPARATOR);
-
-    for (let i = 1; i <= parts.length; i++) {
-      const prefix = parts.slice(0, i).join(PATH_SEPARATOR);
-
-      if (this.schemaPaths.relationKeys.includes(prefix)) {
-        return true;
-      }
-    }
-
     return false;
+
+    // console.log({
+    //   path,
+    //   test: this.schemaPaths.relationFields.includes(path)
+    // });
+
+    // // Direct match in relation fields
+    // if (this.schemaPaths.relationFields.includes(path)) {
+    //   return true;
+    // }
+
+    // // Check path prefixes against relation keys
+    // return this.isValidPathPrefix(path);
   }
 }

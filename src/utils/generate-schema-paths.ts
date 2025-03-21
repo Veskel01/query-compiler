@@ -1,4 +1,4 @@
-import type { QuerySchemaDefinition, SchemaPaths } from '@/interfaces';
+import type { QuerySchemaDefinition, SchemaPaths } from '../interfaces';
 
 export function generateSchemaPaths<T>(
   schema: QuerySchemaDefinition<T, number>,
