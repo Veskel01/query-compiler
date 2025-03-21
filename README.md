@@ -13,6 +13,7 @@ The Structured Query Compiler allows you to define complex data schemas with rel
 - Selective field inclusion for optimized queries
 - Clean, empty-object-free query output
 - Customizable query structure with configuration options
+- **Flexible sorting options for both root and nested fields**
 
 <!-- TODO - ADD installation instructions -->
 
@@ -50,17 +51,21 @@ import { QuerySchemaDefinition } from 'structured-query-compiler';
 
 const schema: QuerySchemaDefinition<User> = {
   selectableFields: ['id', 'firstName', 'lastName', 'email', 'username'],
+  sortableFields: ['id', 'firstName', 'lastName', 'email'], // Define which fields can be sorted
   populate: {
     profile: {
       selectableFields: ['id', 'bio', 'avatarUrl'],
+      sortableFields: ['id'], // Optional: specify sortable fields for relations
       populate: {
         socialLinks: {
-          selectableFields: ['id', 'platform', 'url']
+          selectableFields: ['id', 'platform', 'url'],
+          sortableFields: ['platform']
         }
       }
     },
     posts: {
-      selectableFields: ['id', 'title', 'content']
+      selectableFields: ['id', 'title', 'content'],
+      sortableFields: ['id', 'title', 'createdAt']
       // ...define nested relations
     }
   }
@@ -83,6 +88,12 @@ const query = compiler.compile({
     'posts',
     'posts.author.profile'
     // ...other relations to populate
+  ],
+  // Add sorting options
+  sort: [
+    { field: 'lastName', direction: 'asc' },
+    { field: 'firstName', direction: 'asc' },
+    { field: 'posts.createdAt', direction: 'desc' } // Nested sorting
   ]
 });
 
@@ -109,6 +120,12 @@ interface CompileInput {
 
   // Custom key to use for selected fields (default: "select")
   selectKey?: string;
+
+  // Sorting options (can be a single option or an array)
+  sort?: SortOption | SortOption[];
+
+  // Custom key to use for sorting (default: "orderBy")
+  sortKey?: string;
 }
 ```
 
@@ -128,15 +145,70 @@ const query = compiler.compile({
   selectableFields: ['id', 'name'],
   populate: ['profile'],
   selectKey: 'fields', // Instead of "select"
-  includeKey: 'relations' // Instead of "include"
+  includeKey: 'relations', // Instead of "include"
+  sort: { field: 'name', direction: 'asc' },
+  sortKey: 'sort' // Instead of "orderBy"
 });
 
 // Generates:
 // {
 //   fields: { id: true, name: true },
-//   relations: { profile: { fields: {...} } }
+//   relations: { profile: { fields: {...} } },
+//   sort: { name: 'asc' }
 // }
 ```
+
+## Sorting
+
+### Basic Sorting
+
+```typescript
+const query = compiler.compile({
+  selectableFields: ['id', 'firstName', 'lastName'],
+  populate: ['profile'],
+  sort: { field: 'lastName', direction: 'asc' }
+});
+
+// Generates:
+// {
+//   select: { id: true, firstName: true, lastName: true },
+//   include: { profile: { ... } },
+//   orderBy: { lastName: 'asc' }
+// }
+```
+
+### Multi-field Sorting
+
+```typescript
+const query = compiler.compile({
+  selectableFields: ['id', 'firstName', 'lastName'],
+  populate: ['posts'],
+  sort: [
+    { field: 'lastName', direction: 'asc' },
+    { field: 'firstName', direction: 'asc' }
+  ]
+});
+```
+
+### Nested Sorting
+
+You can sort by fields in nested relations using dot notation:
+
+```typescript
+const query = compiler.compile({
+  selectableFields: ['id', 'firstName'],
+  populate: ['posts', 'posts.comments'],
+  sort: [
+    { field: 'firstName', direction: 'asc' },
+    { field: 'posts.createdAt', direction: 'desc' },
+    { field: 'posts.comments.createdAt', direction: 'asc' }
+  ]
+});
+
+// Generates nested sorting structure
+```
+
+The compiler will validate that the fields used for sorting are defined as sortable in the schema. If `sortableFields` is not specified, all fields from `selectableFields` will be considered sortable by default.
 
 ### Example Output
 
@@ -161,6 +233,9 @@ The compiler generates a structured query object like this:
         socialLinks: {
           select: {
             platform: true
+          },
+          orderBy: {
+            platform: 'asc'
           }
         }
       }
@@ -170,6 +245,9 @@ The compiler generates a structured query object like this:
         id: true,
         title: true,
         content: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       },
       include: {
         author: {
@@ -185,6 +263,10 @@ The compiler generates a structured query object like this:
         }
       }
     }
+  },
+  orderBy: {
+    lastName: 'asc',
+    firstName: 'asc'
   }
 }
 ```

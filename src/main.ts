@@ -194,8 +194,12 @@ const selectableFields = ['id', 'firstName', 'lastName', 'email', 'createdAt', '
 const populate = [
   'profile',
   'profile.socialLinks',
+
+  'profile',
+  'profile.id',
+  'profile.socialLinks',
   'profile.socialLinks.platform',
-  // 'profile.socialLinks.url',
+  'profile.socialLinks.url',
 
   'posts',
   'posts.author.profile',
@@ -228,10 +232,40 @@ const compiler = StructuredQueryCompiler.forSchema(schema);
 const query = compiler.compile({
   populate,
   selectableFields,
-  includeKey: 'with',
-  selectKey: 'columns'
+  sort: [
+    {
+      field: 'posts.id',
+      direction: 'ASC'
+    },
+    {
+      field: 'posts.comments.id',
+      direction: 'DESC'
+    },
+    {
+      field: 'profile.id',
+      direction: 'ASC'
+    },
+    {
+      field: 'profile.socialLinks.url',
+      direction: 'DESC'
+    },
+    {
+      field: 'role.id',
+      direction: 'ASC'
+    },
+    {
+      field: 'role.permissions.id',
+      direction: 'DESC'
+    },
+    {
+      field: 'posts.comments.likes.user.profile.id',
+      direction: 'ASC'
+    },
+    {
+      field: 'posts.comments.childComments.author.id',
+      direction: 'DESC'
+    }
+  ]
 });
 
 console.dir(query, { depth: null });
-
-// TODO - complete

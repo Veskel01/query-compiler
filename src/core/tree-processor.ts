@@ -12,6 +12,7 @@ export interface ProcessTreeInput {
 export class TreeProcessor {
   /**
    * Process the populate paths and construct a tree representation
+   *
    * @param populatePaths Array of populate paths
    * @param schemaPaths Schema paths to validate against
    * @returns Map of root relation nodes
@@ -51,7 +52,7 @@ export class TreeProcessor {
       }
 
       // Check if this is a field in the schema
-      if (schemaPaths.relationFields.includes(param)) {
+      if (schemaPaths.relations.selectable.includes(param)) {
         if (!relationsWithExplicitFields.has(relationPath)) {
           relationsWithExplicitFields.set(relationPath, new Set());
         }
@@ -109,7 +110,7 @@ export class TreeProcessor {
         // If this is the last part, it could be a field or a relation
         if (i === parts.length - 1) {
           // Check if this is a field of the current relation
-          if (schemaPaths.relationFields.includes(currentPath)) {
+          if (schemaPaths.relations.selectable.includes(currentPath)) {
             currentNode.fields.add(part);
           }
           // Otherwise it's a relation
@@ -161,7 +162,7 @@ export class TreeProcessor {
     // then add all fields from schema
     if (!hasExplicitFields && populatePaths.includes(path) && node.fields.size === 0) {
       // Find all direct fields for this relation from schema
-      for (const fieldPath of schemaPaths.relationFields) {
+      for (const fieldPath of schemaPaths.relations.selectable) {
         if (fieldPath.startsWith(`${path}${PATH_SEPARATOR}`)) {
           const fieldName = fieldPath.substring(path.length + 1);
           if (!fieldName.includes(PATH_SEPARATOR)) {
@@ -191,7 +192,8 @@ export class TreeProcessor {
     return {
       path,
       fields: new Set(),
-      relations: new Map()
+      relations: new Map(),
+      metadata: {}
     };
   }
 }
