@@ -7,6 +7,7 @@ import {
   SortDirection
 } from '../constants';
 import type {
+  CompileOptions,
   QuerySchemaDefinition,
   SchemaPaths,
   SortOption,
@@ -20,16 +21,6 @@ import { generateSchemaPaths } from '../utils/generate-schema-paths';
 import { TreeProcessor } from './tree-processor';
 
 export type EmptyRootFieldsBehavior = 'leaveEmpty' | 'returnAll';
-
-export interface CompileInput {
-  emptyRootFieldsBehavior?: EmptyRootFieldsBehavior;
-  includeKey?: string;
-  populate: string[];
-  selectableFields: string[];
-  selectKey?: string;
-  sort?: SortOption | SortOption[];
-  sortKey?: string;
-}
 
 // TODO - fix errors
 
@@ -69,7 +60,7 @@ export class StructuredQueryCompiler<T> {
     emptyRootFieldsBehavior = 'returnAll',
     sort,
     sortKey = DEFAULT_SORT_KEY
-  }: CompileInput): StructuredQuery {
+  }: CompileOptions): StructuredQuery {
     // Build root fields selection
     const rootFields = this.compileRootFields({
       selectKey,

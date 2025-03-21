@@ -2,6 +2,7 @@ import type { QuerySchemaDefinition, SchemaPaths } from '../interfaces';
 
 /**
  * Generates a structured representation of all paths in a schema definition
+ * Correctly handles explicitly defined sortable fields
  *
  * @param schema The schema definition to process
  * @param parentPath Optional parent path for recursive processing
@@ -11,6 +12,7 @@ export function generateSchemaPaths<T>(
   schema: QuerySchemaDefinition<T, number>,
   parentPath: string = ''
 ): SchemaPaths {
+  // Initialize result with empty arrays for all collections
   const result: SchemaPaths = {
     root: {
       selectable: [],
@@ -28,7 +30,8 @@ export function generateSchemaPaths<T>(
     // Process selectable fields
     result.root.selectable = schema.selectableFields?.map((field) => field.toString()) ?? [];
 
-    // Process sortable fields (use selectable as default if not specified)
+    // Process sortable fields
+    // Only if explicitly defined, otherwise default to selectable fields
     if (schema.sortableFields && schema.sortableFields.length > 0) {
       result.root.sortable = schema.sortableFields.map((field) => field.toString());
     } else {
@@ -53,16 +56,16 @@ export function generateSchemaPaths<T>(
       }
 
       // Process relation's sortable fields
-      if (Array.isArray(relationSchema.sortableFields)) {
-        for (const field of relationSchema.sortableFields) {
-          const fieldPath = `${relationPath}.${field.toString()}`;
-          result.relations.sortable.push(fieldPath);
-        }
-      }
+      // IMPORTANT: Only include fields that are explicitly defined as sortable
+      // or all selectable fields if sortableFields is not defined
+      const hasSortableFields =
+        relationSchema.sortableFields && relationSchema.sortableFields.length > 0;
+      const fieldsToInclude = hasSortableFields
+        ? relationSchema.sortableFields
+        : relationSchema.selectableFields;
 
-      if (Array.isArray(relationSchema.selectableFields)) {
-        // Use selectable fields as default sortable fields if not specified
-        for (const field of relationSchema.selectableFields) {
+      if (Array.isArray(fieldsToInclude)) {
+        for (const field of fieldsToInclude) {
           const fieldPath = `${relationPath}.${field.toString()}`;
           result.relations.sortable.push(fieldPath);
         }
@@ -78,6 +81,7 @@ export function generateSchemaPaths<T>(
     }
   }
 
+  // Remove duplicates using Set
   return {
     root: {
       selectable: [...new Set(result.root.selectable)],

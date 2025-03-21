@@ -254,18 +254,16 @@ const query = compiler.compile({
       direction: 'ASC'
     },
     {
-      field: 'role.permissions.id',
-      direction: 'DESC'
-    },
-    {
       field: 'posts.comments.likes.user.profile.id',
       direction: 'ASC'
     },
     {
       field: 'posts.comments.childComments.author.id',
       direction: 'DESC'
+    },
+    {
+      field: 'role.id',
+      direction: 'ASC'
     }
   ]
 });
-
-console.dir(query, { depth: null });
